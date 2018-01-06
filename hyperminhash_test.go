@@ -1,6 +1,7 @@
 package hyperminhash
 
 import (
+	"fmt"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -135,6 +136,16 @@ func TestIntersection(t *testing.T) {
 
 		exact := uint64(k - int(float64(k)*frac))
 		res := sk1.Intersection(sk2)
+
+		fmt.Printf(
+			"Expected %.3f%% intersection in union of %d (%d U %d): %d, got %d\n",
+			100*float64(k-int(float64(k)*frac))/float64(2*k),
+			2*k,
+			k,
+			2*k-int(float64(k)*frac),
+			exact,
+			res,
+		)
 
 		ratio := 100 * estimateError(res, exact)
 		if ratio > 10 {
