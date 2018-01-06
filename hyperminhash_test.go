@@ -1,8 +1,6 @@
 package hyperminhash
 
 import (
-	"fmt"
-	"math"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -85,49 +83,62 @@ func TestMerge(t *testing.T) {
 	}
 
 	sk1.Merge(sk2)
-	exact := len(unique)
-	res := int(sk1.Cardinality())
+	exact := uint64(len(unique))
+	res := sk1.Cardinality()
 
-	ratio := 100 * math.Abs(float64(res-exact)) / float64(exact)
-	expectedError := 1.04 / math.Sqrt(float64(m))
+	ratio := 100 * estimateError(res, exact)
 
-	if float64(res) < float64(exact)-(float64(exact)*expectedError) || float64(res) > float64(exact)+(float64(exact)*expectedError) {
+	if ratio > 2 {
 		t.Errorf("Exact %d, got %d which is %.2f%% error", exact, res, ratio)
 	}
 
 	sk1.Merge(sk2)
 	exact = res
-	res = int(sk1.Cardinality())
+	res = sk1.Cardinality()
 
-	if float64(res) < float64(exact)-(float64(exact)*expectedError) || float64(res) > float64(exact)+(float64(exact)*expectedError) {
+	if ratio > 2 {
 		t.Errorf("Exact %d, got %d which is %.2f%% error", exact, res, ratio)
 	}
 }
 
-func TestCollision(t *testing.T) {
-	sk1 := &Sketch{}
-	sk2 := &Sketch{}
-	unique := map[string]uint{}
+func TestIntersection(t *testing.T) {
 
-	for i := 0; i < 10000000; i++ {
-		str := strconv.Itoa(i)
-		sk1.Add([]byte(str))
-		unique[str]++
-	}
+	iters := 20
+	k := 1000000
 
-	for i := 9000000; i < 20000000; i++ {
-		str := strconv.Itoa(i)
-		sk2.Add([]byte(str))
-		unique[str]++
-	}
+	for j := 1; j <= iters; j++ {
 
-	col := 0
-	for _, count := range unique {
-		if count > 1 {
-			col++
+		sk1 := &Sketch{}
+		sk2 := &Sketch{}
+		unique := map[string]uint{}
+
+		frac := float64(j) / float64(iters)
+
+		for i := 0; i < k; i++ {
+			str := strconv.Itoa(i)
+			sk1.Add([]byte(str))
+			unique[str]++
+		}
+
+		for i := int(float64(k) * frac); i < 2*k; i++ {
+			str := strconv.Itoa(i)
+			sk2.Add([]byte(str))
+			unique[str]++
+		}
+
+		col := 0
+		for _, count := range unique {
+			if count > 1 {
+				col++
+			}
+		}
+
+		exact := uint64(k - int(float64(k)*frac))
+		res := sk1.Intersection(sk2)
+
+		ratio := 100 * estimateError(res, exact)
+		if ratio > 10 {
+			t.Errorf("Exact %d, got %d which is %.2f%% error", exact, res, ratio)
 		}
 	}
-	fmt.Println(sk1.Cardinality())
-	fmt.Println(sk1.Similarity(sk2))
-	fmt.Println(sk1.Intersection(sk2))
 }

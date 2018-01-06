@@ -13,8 +13,8 @@ const (
 	max   = 64 - p
 	maxX  = math.MaxUint64 >> max
 	alpha = 0.7213 / (1 + 1.079/float64(m))
-	q     = 6 // the number of bits for the LogLog hash
-	r     = 8 // number of bits for the bbit hash
+	q     = 6  // the number of bits for the LogLog hash
+	r     = 16 // number of bits for the bbit hash
 	_2q   = 1 << q
 	_2r   = 1 << r
 )
