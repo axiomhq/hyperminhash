@@ -27,7 +27,7 @@ func main() {
 		rnd         = pcgr.New(time.Now().UnixNano(), 0)
 	)
 
-	fmt.Println("| Set 1 | HLL 1 | Set 2 | HLL 2 | S1 ∪ S2 | HLL1 ∪ HLL2 | S1 ∩ S2 | HLL1 ∩ HLL2 |")
+	fmt.Println("| Set1 | HLL1 | Set2 | HLL2 | S1 ∪ S2 | HLL1 ∪ HLL2 | S1 ∩ S2 | HLL1 ∩ HLL2 |")
 	fmt.Println("|---|---|---|---|---|---|---|---|")
 
 	for j := 1; j <= iters; j++ {
