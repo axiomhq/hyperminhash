@@ -21,14 +21,14 @@ func estimateError(got, exp uint64) float64 {
 }
 
 func TestZeros(t *testing.T) {
-	registers := [m]uint8{}
+	registers := [m]uint16{}
 	exp := 0.0
 	for i := range registers {
-		val := uint8(rand.Intn(32))
+		val := uint16(rand.Intn(32))
 		if val == 0 {
 			exp++
 		}
-		registers[i] = val
+		registers[i] = val << r
 	}
 	_, got := regSumAndZeros(registers[:])
 	if got != exp {
@@ -115,7 +115,7 @@ func TestCollision(t *testing.T) {
 		unique[str]++
 	}
 
-	for i := 9000000; i < 20000000; i++ {
+	for i := 10000000; i < 20000000; i++ {
 		str := strconv.Itoa(i)
 		sk2.Add([]byte(str))
 		unique[str]++
