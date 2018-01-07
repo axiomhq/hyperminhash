@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/dgryski/go-pcgr"
 
@@ -21,10 +20,11 @@ func estimateError(got, exp uint64) float64 {
 }
 
 func main() {
+
 	var (
-		k     int64 = 10000000
-		iters       = 20
-		rnd         = pcgr.New(time.Now().UnixNano(), 0)
+		k     int64 = 10000
+		iters       = 10
+		rnd         = pcgr.New(0, 0) //time.Now().UnixNano(), 0)
 	)
 
 	fmt.Println("| Set1 | HLL1 | Set2 | HLL2 | S1 ∪ S2 | HLL1 ∪ HLL2 | S1 ∩ S2 | HLL1 ∩ HLL2 |")
@@ -64,7 +64,9 @@ func main() {
 		ints1 := sk1.Intersection(sk2)
 		sk1.Merge(sk2)
 		mcard := sk1.Cardinality()
-		row := fmt.Sprintf("| %d | %d | %d | %d | %d | %d | **%d** (%f%%) | **%d** (%f%%) |", size1, card1, size2, card2, len(set), mcard, cols, float64(int(100*cols)/len(set)), ints1, 100*float64(ints1)/float64(mcard))
+		row := fmt.Sprintf("| %d | %d | %d | %d | %d | %d | **%d** (%f%%) | **%d** (%f%%) |",
+			size1, card1, size2, card2, len(set), mcard, cols,
+			float64(float64(100*cols)/float64(len(set))), ints1, 100*float64(ints1)/float64(mcard))
 
 		fmt.Println(row)
 	}

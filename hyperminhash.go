@@ -14,7 +14,7 @@ const (
 	maxX  = math.MaxUint64 >> max
 	alpha = 0.7213 / (1 + 1.079/float64(m))
 	q     = 6  // the number of bits for the LogLog hash
-	r     = 16 // number of bits for the bbit hash
+	r     = 10 // number of bits for the bbit hash
 	_2q   = 1 << q
 	_2r   = 1 << r
 )
@@ -31,21 +31,35 @@ func beta(ez float64) float64 {
 		0.00042419*math.Pow(zl, 7)
 }
 
-func regSumAndZeros(registers []uint8) (float64, float64) {
+func regSumAndZeros(registers []register) (float64, float64) {
 	var sum, ez float64
 	for _, val := range registers {
-		if val == 0 {
+		lz := val.lz()
+		if lz == 0 {
 			ez++
 		}
-		sum += 1 / math.Pow(2, float64(val))
+		sum += 1 / math.Pow(2, float64(lz))
 	}
 	return sum, ez
 }
 
+type register uint16
+
+func (reg register) lz() uint8 {
+	return uint8(uint16(reg) >> (16 - q))
+}
+
+func (reg register) sig() uint16 {
+	return uint16(reg) << (16 - r) >> (16 - r)
+}
+
+func newReg(lz uint8, sig uint16) register {
+	return register((uint16(lz) << r) | sig)
+}
+
 // Sketch is a sketch for cardinality estimation based on LogLog counting
 type Sketch struct {
-	reg [m]uint8
-	sig [m]uint16
+	reg [m]register
 }
 
 // New returns a Sketch
@@ -56,12 +70,12 @@ func New() *Sketch {
 // AddHash takes in a "hashed" value (bring your own hashing)
 func (sk *Sketch) AddHash(x, y uint64) {
 	k := x >> uint(max)
-	val := uint8(bits.LeadingZeros64((x<<p)^maxX)) + 1
-	if sk.reg[k] < val {
-		sk.reg[k] = val
-		sk.sig[k] = uint16(y)
-	} else if sk.reg[k] == val && sk.sig[k] > uint16(y) {
-		sk.sig[k] = uint16(y)
+	lz := uint8(bits.LeadingZeros64((x<<p)^maxX)) + 1
+	sig := uint16(y << (64 - r) >> (64 - r))
+	if sk.reg[k].lz() < lz {
+		sk.reg[k] = newReg(lz, sig)
+	} else if sk.reg[k].lz() == lz && sk.reg[k].sig() > sig {
+		sk.reg[k] = newReg(lz, sig)
 	}
 }
 
@@ -81,13 +95,8 @@ func (sk *Sketch) Cardinality() uint64 {
 func merge(sk1, sk2 *Sketch) *Sketch {
 	m := *sk1
 	for i := range m.reg {
-		if m.reg[i] < sk2.reg[i] {
+		if m.reg[i] < sk2.reg[i] || (m.reg[i] == sk2.reg[i] && m.reg[i] < sk2.reg[i]) {
 			m.reg[i] = sk2.reg[i]
-			m.sig[i] = sk2.sig[i]
-		} else if m.reg[i] == sk2.reg[i] &&
-			m.sig[i] < sk2.sig[i] {
-			m.reg[i] = sk2.reg[i]
-			m.sig[i] = sk2.sig[i]
 		}
 	}
 	return &m
@@ -102,11 +111,10 @@ func (sk *Sketch) Merge(other *Sketch) {
 func (sk *Sketch) Similarity(other *Sketch) float64 {
 	var C, N uint64
 	for i := range sk.reg {
-		if sk.reg[i] == other.reg[i] && sk.sig[i] == other.sig[i] {
+		if sk.reg[i] == other.reg[i] {
 			C++
 		}
-		if sk.reg[i] != 0 && sk.sig[i] != 0 &&
-			other.reg[i] != 0 && other.sig[i] != 0 {
+		if sk.reg[i] != 0 && other.reg[i] != 0 {
 			N++
 		}
 	}
