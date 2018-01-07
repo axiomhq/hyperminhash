@@ -15,6 +15,7 @@ const (
 	alpha = 0.7213 / (1 + 1.079/float64(m))
 	q     = 6  // the number of bits for the LogLog hash
 	r     = 10 // number of bits for the bbit hash
+	_2p   = 1 << p
 	_2q   = 1 << q
 	_2r   = 1 << r
 	c     = 0.169919487159739093975315012348
@@ -111,22 +112,22 @@ func (sk *Sketch) Merge(other *Sketch) {
 
 // Similarity return a Jaccard Index similarity estimation
 func (sk *Sketch) Similarity(other *Sketch) float64 {
-	var C, N uint64
+	var C, N float64
 	for i := range sk.reg {
-		if sk.reg[i] == other.reg[i] {
+		if sk.reg[i] != 0 && sk.reg[i] == other.reg[i] {
 			C++
 		}
-		if sk.reg[i] != 0 && other.reg[i] != 0 {
+		if sk.reg[i] != 0 || other.reg[i] != 0 {
 			N++
 		}
 	}
-	n := sk.Cardinality()
-	m := other.Cardinality()
+	n := float64(sk.Cardinality())
+	m := float64(other.Cardinality())
 	ec := sk.approximateExpectedCollisions(n, m)
-	return (float64(C-ec) / float64(N))
+	return float64(C-ec) / float64(N)
 }
 
-func (sk *Sketch) approximateExpectedCollisions(n, m uint64) uint64 {
+func (sk *Sketch) approximateExpectedCollisions(n, m float64) float64 {
 	if n < m {
 		n, m = m, n
 	}
@@ -134,13 +135,13 @@ func (sk *Sketch) approximateExpectedCollisions(n, m uint64) uint64 {
 		return math.MaxUint64
 	} else if float64(n) > math.Pow(2, p+5) {
 		d := float64(4*n/m) / math.Pow(float64((1+n)/m), 2)
-		return uint64((c * math.Pow(2, p-r) * d) + 0.5)
+		return float64((c * math.Pow(2, p-r) * d) + 0.5)
 	} else {
-		return sk.expectedCollision(n, m)
+		return sk.expectedCollision(n, m) / float64(p)
 	}
 }
 
-func (sk *Sketch) expectedCollision(n, m uint64) uint64 {
+func (sk *Sketch) expectedCollision(n, m float64) float64 {
 	var x, b1, b2 float64
 	for i := 1.0; i <= _2q; i++ {
 		for j := 1.0; j <= _2r; j++ {
@@ -158,7 +159,7 @@ func (sk *Sketch) expectedCollision(n, m uint64) uint64 {
 			x += (prx * pry)
 		}
 	}
-	return uint64((x * float64(p)) + 0.5)
+	return (x * float64(p)) + 0.5
 }
 
 // Intersection returns number of intersections between sk and other
