@@ -17,6 +17,7 @@ const (
 	r     = 10 // number of bits for the bbit hash
 	_2q   = 1 << q
 	_2r   = 1 << r
+	c     = 0.169919487159739093975315012348
 )
 
 func beta(ez float64) float64 {
@@ -60,6 +61,7 @@ func newReg(lz uint8, sig uint16) register {
 // Sketch is a sketch for cardinality estimation based on LogLog counting
 type Sketch struct {
 	reg [m]register
+	raw map[uint64]uint16
 }
 
 // New returns a Sketch
@@ -120,8 +122,22 @@ func (sk *Sketch) Similarity(other *Sketch) float64 {
 	}
 	n := sk.Cardinality()
 	m := other.Cardinality()
-	ec := sk.expectedCollision(n, m)
+	ec := sk.approximateExpectedCollisions(n, m)
 	return (float64(C-ec) / float64(N))
+}
+
+func (sk *Sketch) approximateExpectedCollisions(n, m uint64) uint64 {
+	if n < m {
+		n, m = m, n
+	}
+	if float64(n) > math.Pow(2, math.Pow(2, q)+r) {
+		return math.MaxUint64
+	} else if float64(n) > math.Pow(2, p+5) {
+		d := float64(4*n/m) / math.Pow(float64((1+n)/m), 2)
+		return uint64((c * math.Pow(2, p-r) * d) + 0.5)
+	} else {
+		return sk.expectedCollision(n, m)
+	}
 }
 
 func (sk *Sketch) expectedCollision(n, m uint64) uint64 {
