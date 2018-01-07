@@ -1,13 +1,37 @@
 # HyperMinSketch
 
-Desides being a compact and pretty speedy HyperLogLog implementation for cardinality counting, this HyperLogLog extension allows **intersection** and **similarity** estimation of different HyperLogLogs.
+Besides being a compact and pretty speedy HyperLogLog implementation for cardinality counting, this modified HyperLogLog allows **intersection** and **similarity** estimation of different HyperLogLogs.
 
 ## Details
-A simple implementation of HyperLogLog (LogLog-Beta to be specific) that allows intersections. This is done by increasing the size of the register by 10 bits for a "fingerprint" based on b-Bit Minwise Hashing". 
+A simple implementation of HyperLogLog (LogLog-Beta to be specific):
+* 16 bit registers instead of 6 bit, the new 10 bit are for b-bit signatures
+* Similarity functions estimates Jaccard indices (a number between 0-1) of 0.01 for set cardinalities on the order of 1e9 with accuracy around 5%
+* Intersections applies the Jaccard index on the union of the sets to return the intersecting set cardinality
 
-The sketch allows for estimating Jaccard indices of 0.01 for set cardinalities on the order of 1e9 with accuracy around 5%.
+*The work is based on ["HyperMinHash: Jaccard index sketching in LogLog space - Yun William Yu, Griffin M. Weber"](https://arxiv.org/pdf/1710.08436.pdf)*
 
-The work is based on ["HyperMinHash: Jaccard index sketching in LogLog space - Yun William Yu, Griffin M. Weber"](https://arxiv.org/pdf/1710.08436.pdf)
+## Example Usage
+```go
+sk1 := hyperminhash.New()
+sk2 := hyperminhash.New()
+
+for i := 0; i < 10000; i++ {
+    sk1.Add([]byte(strconv.Itoa(i)))
+}
+
+sk1.Cardinality() // 10001 (should be 10000)
+
+for i := 3333; i < 23333; i++ {
+    sk2.Add([]byte(strconv.Itoa(i)))
+}
+
+sk2.Cardinality()     // 19977 (should be 20000)
+sk1.Similarity(sk2)   // 0.284589082 (should be 0.2857326533)
+sk1.Intersection(sk2) // 6623 (should be 6667)
+
+sk1.Merge(sk2)
+sk1.Cardinality() // 23271 (should be 23333)
+```
 
 ## Results
 
