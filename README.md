@@ -5,8 +5,8 @@ Besides being a compact and pretty speedy HyperLogLog implementation for cardina
 ## Details
 A simple implementation of HyperLogLog (LogLog-Beta to be specific):
 * 16 bit registers instead of 6 bit, the new 10 bit are for b-bit signatures
-* Similarity functions estimates Jaccard indices (a number between 0-1) of 0.01 for set cardinalities on the order of 1e9 with accuracy around 5%
-* Intersections applies the Jaccard index on the union of the sets to return the intersecting set cardinality
+* Similarity function estimates Jaccard indices (a number between 0-1) of 0.01 for set cardinalities on the order of 1e9 with accuracy around 5%
+* Intersection applies the Jaccard index on the union of the sets to return the intersecting set cardinality
 
 *The work is based on ["HyperMinHash: Jaccard index sketching in LogLog space - Yun William Yu, Griffin M. Weber"](https://arxiv.org/pdf/1710.08436.pdf)*
 

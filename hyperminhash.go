@@ -95,19 +95,15 @@ func (sk *Sketch) Cardinality() uint64 {
 	return uint64(alpha * m * (m - ez) / (beta(ez) + sum))
 }
 
-func merge(sk1, sk2 *Sketch) *Sketch {
-	m := *sk1
+// Merge returns a new union sketch of both sk and other
+func (sk *Sketch) Merge(other *Sketch) *Sketch {
+	m := *sk
 	for i := range m.reg {
-		if m.reg[i] < sk2.reg[i] || (m.reg[i] == sk2.reg[i] && m.reg[i] < sk2.reg[i]) {
-			m.reg[i] = sk2.reg[i]
+		if m.reg[i] < other.reg[i] || (m.reg[i] == other.reg[i] && m.reg[i] < other.reg[i]) {
+			m.reg[i] = other.reg[i]
 		}
 	}
 	return &m
-}
-
-// Merge other into sk
-func (sk *Sketch) Merge(other *Sketch) {
-	*sk = *(merge(sk, other))
 }
 
 // Similarity return a Jaccard Index similarity estimation
@@ -121,6 +117,10 @@ func (sk *Sketch) Similarity(other *Sketch) float64 {
 			N++
 		}
 	}
+	if C == 0 {
+		return 0
+	}
+
 	n := float64(sk.Cardinality())
 	m := float64(other.Cardinality())
 	ec := sk.approximateExpectedCollisions(n, m)
@@ -165,6 +165,5 @@ func (sk *Sketch) expectedCollision(n, m float64) float64 {
 // Intersection returns number of intersections between sk and other
 func (sk *Sketch) Intersection(other *Sketch) uint64 {
 	sim := sk.Similarity(other)
-	m := merge(sk, other)
-	return uint64((sim*float64(m.Cardinality()) + 0.5))
+	return uint64((sim*float64(sk.Merge(other).Cardinality()) + 0.5))
 }

@@ -1,7 +1,7 @@
 package hyperminhash
 
 import (
-	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -20,15 +20,24 @@ func estimateError(got, exp uint64) float64 {
 }
 
 func TestZeros(t *testing.T) {
-	registers := [m]uint8{}
+	registers := [m]register{}
 	exp := 0.0
 	for i := range registers {
-		val := uint8(rand.Intn(32))
-		if val == 0 {
+		val := register(rand.Intn(math.MaxUint16))
+		if val.lz() == 0 {
 			exp++
 		}
 		registers[i] = val
 	}
+	_, got := regSumAndZeros(registers[:])
+	if got != exp {
+		t.Errorf("expected %.2f, got %.2f", exp, got)
+	}
+}
+
+func TestAllZeros(t *testing.T) {
+	registers := [m]register{}
+	exp := 16384.00
 	_, got := regSumAndZeros(registers[:])
 	if got != exp {
 		t.Errorf("expected %.2f, got %.2f", exp, got)
@@ -83,9 +92,9 @@ func TestMerge(t *testing.T) {
 		unique[str] = true
 	}
 
-	sk1.Merge(sk2)
+	msk := sk1.Merge(sk2)
 	exact := uint64(len(unique))
-	res := sk1.Cardinality()
+	res := msk.Cardinality()
 
 	ratio := 100 * estimateError(res, exact)
 
@@ -137,19 +146,28 @@ func TestIntersection(t *testing.T) {
 		exact := uint64(k - int(float64(k)*frac))
 		res := sk1.Intersection(sk2)
 
-		fmt.Printf(
-			"Expected %.3f%% intersection in union of %d (%d U %d): %d, got %d\n",
-			100*float64(k-int(float64(k)*frac))/float64(2*k),
-			2*k,
-			k,
-			2*k-int(float64(k)*frac),
-			exact,
-			res,
-		)
-
 		ratio := 100 * estimateError(res, exact)
 		if ratio > 10 {
 			t.Errorf("Exact %d, got %d which is %.2f%% error", exact, res, ratio)
 		}
+	}
+}
+
+func TestNoIntersection(t *testing.T) {
+
+	sk1 := New()
+	sk2 := New()
+
+	for i := 0; i < 1000000; i++ {
+		sk1.Add([]byte(strconv.Itoa(i)))
+	}
+
+	for i := 1000000; i < 2000000; i++ {
+		sk2.Add([]byte(strconv.Itoa(i)))
+	}
+
+	sk1.Intersection(sk2) // 6623 (should be 6667)
+	if got := sk1.Intersection(sk2); got != 0 {
+		t.Errorf("Expected no intersection, got %v", got)
 	}
 }
