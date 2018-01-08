@@ -98,7 +98,7 @@ func (sk *Sketch) Cardinality() uint64 {
 func (sk *Sketch) Merge(other *Sketch) *Sketch {
 	m := *sk
 	for i := range m.reg {
-		if m.reg[i].lz() < other.reg[i].lz() {
+		if m.reg[i] < other.reg[i] {
 			m.reg[i] = other.reg[i]
 		}
 	}
