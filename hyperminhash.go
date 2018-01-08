@@ -75,10 +75,9 @@ func (sk *Sketch) AddHash(x, y uint64) {
 	k := x >> uint(max)
 	lz := uint8(bits.LeadingZeros64((x<<p)^maxX)) + 1
 	sig := uint16(y << (64 - r) >> (64 - r))
-	if sk.reg[k].lz() < lz {
-		sk.reg[k] = newReg(lz, sig)
-	} else if sk.reg[k].lz() == lz && sk.reg[k].sig() > sig {
-		sk.reg[k] = newReg(lz, sig)
+	reg := newReg(lz, sig)
+	if sk.reg[k] < reg {
+		sk.reg[k] = reg
 	}
 }
 
@@ -99,7 +98,7 @@ func (sk *Sketch) Cardinality() uint64 {
 func (sk *Sketch) Merge(other *Sketch) *Sketch {
 	m := *sk
 	for i := range m.reg {
-		if m.reg[i] < other.reg[i] || (m.reg[i] == other.reg[i] && m.reg[i] < other.reg[i]) {
+		if m.reg[i].lz() < other.reg[i].lz() {
 			m.reg[i] = other.reg[i]
 		}
 	}
@@ -124,7 +123,13 @@ func (sk *Sketch) Similarity(other *Sketch) float64 {
 	n := float64(sk.Cardinality())
 	m := float64(other.Cardinality())
 	ec := sk.approximateExpectedCollisions(n, m)
-	return float64(C-ec) / float64(N)
+
+	//FIXME: must be a better way to predetect this
+	if C < ec {
+		return 0
+	}
+
+	return (C - ec) / N
 }
 
 func (sk *Sketch) approximateExpectedCollisions(n, m float64) float64 {

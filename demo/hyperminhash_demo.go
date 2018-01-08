@@ -60,8 +60,8 @@ func main() {
 			card1 := sk1.Cardinality()
 			card2 := sk2.Cardinality()
 			ints1 := sk1.Intersection(sk2)
-			sk1.Merge(sk2)
-			mcard := sk1.Cardinality()
+			m := sk1.Merge(sk2)
+			mcard := m.Cardinality()
 			row := fmt.Sprintf("| %d | %d | %d | %d | %d | %d | **%d** (%f%%) | **%d** (%f%%) |", size1, card1, size2, card2, len(set), mcard, cols, float64(float64(100*cols)/float64(len(set))), ints1, 100*float64(ints1)/float64(mcard))
 
 			fmt.Println(row)

@@ -166,7 +166,6 @@ func TestNoIntersection(t *testing.T) {
 		sk2.Add([]byte(strconv.Itoa(i)))
 	}
 
-	sk1.Intersection(sk2) // 6623 (should be 6667)
 	if got := sk1.Intersection(sk2); got != 0 {
 		t.Errorf("Expected no intersection, got %v", got)
 	}
