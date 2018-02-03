@@ -15,7 +15,6 @@ const (
 	alpha = 0.7213 / (1 + 1.079/float64(m))
 	q     = 6  // the number of bits for the LogLog hash
 	r     = 10 // number of bits for the bbit hash
-	_2p   = 1 << p
 	_2q   = 1 << q
 	_2r   = 1 << r
 	c     = 0.169919487159739093975315012348
@@ -51,10 +50,6 @@ func (reg register) lz() uint8 {
 	return uint8(uint16(reg) >> (16 - q))
 }
 
-func (reg register) sig() uint16 {
-	return uint16(reg) << (16 - r) >> (16 - r)
-}
-
 func newReg(lz uint8, sig uint16) register {
 	return register((uint16(lz) << r) | sig)
 }
@@ -62,7 +57,6 @@ func newReg(lz uint8, sig uint16) register {
 // Sketch is a sketch for cardinality estimation based on LogLog counting
 type Sketch struct {
 	reg [m]register
-	raw map[uint64]uint16
 }
 
 // New returns a Sketch
@@ -136,11 +130,11 @@ func (sk *Sketch) approximateExpectedCollisions(n, m float64) float64 {
 	if n < m {
 		n, m = m, n
 	}
-	if float64(n) > math.Pow(2, math.Pow(2, q)+r) {
+	if n > math.Pow(2, math.Pow(2, q)+r) {
 		return math.MaxUint64
-	} else if float64(n) > math.Pow(2, p+5) {
-		d := float64(4*n/m) / math.Pow(float64((1+n)/m), 2)
-		return float64((c * math.Pow(2, p-r) * d) + 0.5)
+	} else if n > math.Pow(2, p+5) {
+		d := (4 * n / m) / math.Pow((1+n)/m, 2)
+		return c*math.Pow(2, p-r)*d + 0.5
 	} else {
 		return sk.expectedCollision(n, m) / float64(p)
 	}
@@ -151,16 +145,16 @@ func (sk *Sketch) expectedCollision(n, m float64) float64 {
 	for i := 1.0; i <= _2q; i++ {
 		for j := 1.0; j <= _2r; j++ {
 			if i != _2q {
-				den := math.Pow(2, float64(p+r+i))
+				den := math.Pow(2, p+r+i)
 				b1 = (_2r + j) / den
 				b2 = (_2r + j + 1) / den
 			} else {
-				den := math.Pow(2, float64(p+r+i-1))
+				den := math.Pow(2, p+r+i-1)
 				b1 = j / den
 				b2 = (j + 1) / den
 			}
-			prx := math.Pow(1-b2, float64(n)) - math.Pow(1-b1, float64(n))
-			pry := math.Pow(1-b2, float64(m)) - math.Pow(1-b1, float64(m))
+			prx := math.Pow(1-b2, n) - math.Pow(1-b1, n)
+			pry := math.Pow(1-b2, m) - math.Pow(1-b1, m)
 			x += (prx * pry)
 		}
 	}
