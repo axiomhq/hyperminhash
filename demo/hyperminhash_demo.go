@@ -6,7 +6,7 @@ import (
 	"time"
 
 	pcgr "github.com/dgryski/go-pcgr"
-	"github.com/seiflotfy/hyperminhash"
+	"github.com/axiomhq/hyperminhash"
 )
 
 func estimateError(got, exp uint64) float64 {
